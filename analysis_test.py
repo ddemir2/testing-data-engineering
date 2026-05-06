@@ -23,7 +23,7 @@ unique_vehicles = set()
 unique_trips = set()
 expected_count = None
 sentinel_time = None
-unvalidated_batch_df = pd.DataFrame(columns=['EVENT_NO_TRIP', 'EVENT_NO_STOP', 'OPD_DATE', 'VEHICLE_ID', 'METERS', 'ACT_TIME', 'GPS_LONGITUDE', 'GPS_LATITUDE', 'GPS_SATELLITES', 'GPS_HDOP'])
+unvalidated_batch_list = []
 validate_count = 0
 
 
@@ -220,10 +220,9 @@ sub_path   = subscriber.subscription_path(PROJECT_ID, SUBSCRIPTION_ID)
 #---Callback Function------------------------------------------------------
 def callback(message):
 	global breadcrumb_count, unique_vehicles, unique_trips, earliest_bc, latest_bc, wall_clock_time
-	global expected_count, sentinel_time, unvalidated_batch_df, validate_count
+	global expected_count, sentinel_time, unvalidated_batch_list, validate_count
 	message.ack()
 	breadcrumb = json.loads(message.data.decode('utf-8')) # one breadcrumb
-	breadcrumb_df = pd.DataFrame([breadcrumb])
 
 	# analysis happens here
 	if breadcrumb['VEHICLE_ID'] == 0:
@@ -238,26 +237,7 @@ def callback(message):
 
 		breadcrumb_count = breadcrumb_count + 1
 
-		#-----DATA VALIDATION, TRANSFORMATION, INSERT  GOES HERE-------------------------------------------
-		try:
-			unvalidated_batch_df = pd.concat([unvalidated_batch_df, breadcrumb_df])
-			if(breadcrumb_count % 100000 == 0):
-				print(f'unvalidated_batch_df length: {len(unvalidated_batch_df)}')
-		except:
-			print(f'Error at breadcrumb #{breadcrumb_count}')
-
-		#if(len(unvalidated_batch_df) <= 20000):
-		#	validate_count = validate_count + 1
-		#	unvalidated_batch_df = pd.concat([unvalidated_batch_df, breadcrumb_df])
-		#else:
-		#	validated_batch_df = validate_batch(unvalidated_batch_df)
-		#	#pass validated df to transform function
-		#	#pass transformed tables to database insert function
-		#	validated_batch_df   = validated_batch_df.drop(validated_batch_df.index)
-		#	unvalidated_batch_df = unvalidated_batch_df.drop(unvalidated_batch_df.index)
-		#	print(f'{validate_count} breadcrumbs validated so far . . .')
-
-		#-----------------------------------------------------------------------
+		unvalidated_batch_list.append(breadcrumb)
 
 		if breadcrumb_count % 100000 == 0:
 			print(f"Collected {breadcrumb_count} so far")
@@ -275,15 +255,6 @@ def callback(message):
 		if earliest_bc is None or current_bc_time < earliest_bc:
 			earliest_bc = current_bc_time
 
-		#try:
-		#	unvalidated_batch_df = pd.concat([unvalidated_batch_df, breadcrumb_df])
-		#	if len(unvalidated_batch_df) % 50000 == 0:
-		#		print(f"unvalidated_batch_df size: {len(unvalidated_batch_df)}")
-		#except MemoryError as e:
-		#		if breadcrumb_count % 100000 == 0:
-		#			logging.error(f"Memory error at {breadcrumb_count} breadcrumbs in: {e}")
-		#except Exception as e:
-		#		print(e)
 
 	# After recieving Sentinel ensure that it hits expected count
 	if expected_count is not None and breadcrumb_count == expected_count:
@@ -303,6 +274,10 @@ def callback(message):
 		print(f"Ellapsed Time: {elapsed_time:.3f}s")
 		print(f"Throughput: {throughput:.3f} msg/s")
 
+		final_unvalidated_df = pd.DataFrame(unvalidated_batch_list)
+		print(f"Shape: {final_unvalidated_df.shape}")
+		print(f'{final_unvalidated_df.head(10)}')
+
 	#----Reset Data Structure(s)------------------------------------------------
 		breadcrumb_count = 0
 		expected_count = None
@@ -313,7 +288,7 @@ def callback(message):
 		wall_clock_time = None
 		sentinel_time = None
 		validate_count = 0
-
+		unvalidated_batch_list = []
 
 #---Listening--------------------------------------------------------------
 streaming_pull = subscriber.subscribe(sub_path, callback=callback)
