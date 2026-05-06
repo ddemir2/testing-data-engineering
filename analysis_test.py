@@ -275,8 +275,10 @@ def callback(message):
 		print(f"Throughput: {throughput:.3f} msg/s")
 
 		final_unvalidated_df = pd.DataFrame(unvalidated_batch_list)
-		print(f"Shape: {final_unvalidated_df.shape}")
-		print(f'{final_unvalidated_df.head(10)}')
+		print(f"Unvalidated DataFrame Shape: {final_unvalidated_df.shape}")
+		validated_df, violations_df = validate_batch(final_unvalidated_df)
+		print(f"Validated DataFrame Shape: {validated_df.shape}")
+		print(f"Violations DataFrame Shape: {violations_df.shape}")
 
 	#----Reset Data Structure(s)------------------------------------------------
 		breadcrumb_count = 0
@@ -289,6 +291,8 @@ def callback(message):
 		sentinel_time = None
 		validate_count = 0
 		unvalidated_batch_list = []
+		violations_df = None
+		validated_df = None
 
 #---Listening--------------------------------------------------------------
 streaming_pull = subscriber.subscribe(sub_path, callback=callback)
