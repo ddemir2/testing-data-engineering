@@ -40,7 +40,7 @@ for index, vehicle_num in enumerate(dazzle_list):
     soup = BeautifulSoup(response.text, 'html.parser')
     h2_tags = soup.find_all('h2')
     h1_tags = soup.find_all('h1')
-    #print(f'Number of h2 tags: {len(h2_tags)}, current breadcrumb count: {breadcrumb_count}')
+    print(f'Number of h2 tags: {len(h2_tags)}, current breadcrumb count: {breadcrumb_count}')
 
     for h1 in h1_tags:
         find_date = re.search(r'stop data for (\d\d\d\d-\d\d-\d\d)', h1.text)
@@ -98,7 +98,7 @@ for index, vehicle_num in enumerate(dazzle_list):
                 "schedule_status" : schedule_status, "service_date" : service_date
               }
 
-              if breadcrum_count % 5000 == 0:
+              if breadcrumb_count % 5000 == 0:
                   print(record)
 
               breadcrumb_count += 1
