@@ -39,7 +39,14 @@ for index, vehicle_num in enumerate(dazzle_list):
 
     soup = BeautifulSoup(response.text, 'html.parser')
     h2_tags = soup.find_all('h2')
+    h1_tags = soup.find_all('h1')
     #print(f'Number of h2 tags: {len(h2_tags)}, current breadcrumb count: {breadcrumb_count}')
+
+    for h1 in h1_tags:
+        find_date = re.search(r'stop data for (\d\d\d\d-\d\d-\d\d)', h1.text)
+        if find_date:
+            service_date = datetime.strptime(find_date.group(1), '%Y-%m-%d').date()
+            print(service_date)
 
     for h2 in h2_tags:
         attempted_match = re.search(r'TRIP (-?\d+)', h2.text)
@@ -56,7 +63,7 @@ for index, vehicle_num in enumerate(dazzle_list):
               direction         = cells[4].get_text()
               service_key       = cells[5].get_text()
               trip_number       = int(attempted_match.group(1))
-              trip_number_2     = cells[6].get_text()
+              #trip_number_2     = cells[6].get_text()
               stop_time         = cells[7].get_text()
               arrive_time       = cells[8].get_text()
               dwell             = cells[9].get_text()
@@ -79,7 +86,7 @@ for index, vehicle_num in enumerate(dazzle_list):
                 "vehicle_number": vehicle_number, "leave_time": leave_time,
                 "train" : train,                  "route_number" : route_number,
                 "direction" : direction,           "service_key" : service_key,
-                "trip_number" : trip_number,       "trip_number_2" : trip_number_2,
+                "trip_number" : trip_number,
                 "stop_time" : stop_time,           "arrive_time" : arrive_time,
                 "dwell" : dwell,                   "location_id" : location_id,
                 "door" : door,                     "lift" : lift,
@@ -88,8 +95,11 @@ for index, vehicle_num in enumerate(dazzle_list):
                 "train_mileage" : train_mileage,   "pattern_distance" : pattern_distance,
                 "location_distance" : location_distance, "GPS_latitude" : GPS_latitude,
                 "GPS_longitude" : GPS_longitude,   "data_source" : data_source,
-                "schedule_status" : schedule_status
+                "schedule_status" : schedule_status, "service_date" : service_date
               }
+
+              if breadcrum_count % 5000 == 0:
+                  print(record)
 
               breadcrumb_count += 1
               payload = json.dumps(record).encode('utf-8')
